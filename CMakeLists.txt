@@ -21,9 +21,11 @@ set( CMAKE_MODULE_PATH
 find_package ( Boost REQUIRED )
 
 if ( CMAKE_COMPILER_IS_GNUCXX )
-    set ( CMAKE_CXX_FLAGS "-std=c++0x" )        ## Optimize
+    set ( CMAKE_CXX_FLAGS "-std=c++1y" )        ## Optimize
 endif ()
 
 include_directories ( ${Boost_INCLUDE_DIRS} )
+
+add_executable ( main main.cpp )
 
 

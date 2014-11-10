@@ -1,21 +1,23 @@
 /*
- * map_range.hpp
- * Date: 2014-09-29
+ * counted_map_range.hpp
+ * Date: 2014-11-10
  * Author: Karsten Ahnert (karsten.ahnert@gmx.de)
  * Copyright: Karsten Ahnert
+ *
+ *
  */
 
-#ifndef MAP_RANGE_HPP_INCLUDED
-#define MAP_RANGE_HPP_INCLUDED
+#ifndef COUNTED_MAP_RANGE_HPP_INCLUDED
+#define COUNTED_MAP_RANGE_HPP_INCLUDED
+
 
 #include <utility>
 #include <iterator>
 
-
-template< typename T , typename F , typename C >
-class map_range
+template< typename T , typename F >
+class counted_map_range
 {
-    using range = map_range< T , F , C >;
+    using range = counted_map_range< T , F >;
     
     struct map_iterator : public std::iterator< std::input_iterator_tag , T >
     {
@@ -27,9 +29,10 @@ class map_range
         map_iterator& operator++( void )
         {
             m_range->m_value = m_range->m_func( m_range->m_value );
-            if( m_range->m_condition( m_range->m_value ) )
+            ++( m_range->m_current_iteration );
+            if( m_range->m_current_iteration >= m_range->m_max_iterations )
             {
-                    m_range = nullptr;
+                m_range = nullptr;
             }
             return *this;
         }
@@ -63,12 +66,13 @@ public:
     
     using iterator = map_iterator;
     using const_iterator = map_iterator;
-        
     
-    map_range( T value , F func , C condition )
-    : m_value { std::move( value ) }
+    
+    counted_map_range( T value , F func , size_t max_iterations )
+    : m_current_iteration { 0 }
+    , m_max_iterations { max_iterations }
+    , m_value { std::move( value ) }
     , m_func { std::move( func ) }
-    , m_condition( condition )
     {}
     
     iterator begin( void )
@@ -80,7 +84,7 @@ public:
     {
         return iterator( nullptr );
     }
-    
+
     
     const_iterator begin( void ) const
     {
@@ -94,16 +98,17 @@ public:
     
 private:
     
+    mutable size_t m_current_iteration = 0;
+    const size_t m_max_iterations;
     mutable T m_value;
     mutable F m_func;
-    C m_condition;
 };
 
 
-template< typename T , typename F , typename P >
-auto make_map_range( T t , F f , P projection )
+template< typename T , typename F >
+auto make_counted_map_range( T t , F f , size_t max_iterations )
 {
-    return map_range< T , F , P >( std::move( t ) , std::move( f ) , std::move( projection ) );
+    return counted_map_range< T , F >( std::move( t ) , std::move( f ) , max_iterations );
 }
 
 
@@ -111,5 +116,4 @@ auto make_map_range( T t , F f , P projection )
 
 
 
-
-#endif // MAP_RANGE_HPP_INCLUDED
+#endif // COUNTED_MAP_RANGE_HPP_INCLUDED

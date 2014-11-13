@@ -96,17 +96,15 @@ private:
     
     mutable T m_value;
     mutable F m_func;
-    C m_condition;
+    mutable C m_condition;
 };
 
 
-template< typename T , typename F , typename P >
-auto make_map_range( T t , F f , P projection )
+template< typename T , typename F , typename C >
+auto make_map_range( T t , F f , C condition )
 {
-    return map_range< T , F , P >( std::move( t ) , std::move( f ) , std::move( projection ) );
+    return map_range< T , F , C >( std::move( t ) , std::move( f ) , std::move( condition ) );
 }
-
-
 
 
 

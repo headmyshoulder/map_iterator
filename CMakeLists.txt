@@ -29,5 +29,7 @@ endif ()
 include_directories ( ${ODEINT_ROOT} )
 include_directories ( ${Boost_INCLUDE_DIRS} )
 
-add_executable ( main main.cpp )
+add_executable ( iota iota.cpp )
+add_executable ( logistic_map logistic_map.cpp )
+add_executable ( newton_method newton_method.cpp )
 add_executable ( odeint_adaption odeint_adaption.cpp )

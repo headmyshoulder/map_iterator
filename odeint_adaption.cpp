@@ -26,7 +26,7 @@ auto lorenz = []( auto const& x , auto& dxdt , auto t )
 };
 
 template< typename System , typename Stepper , typename State , typename Time >
-auto make_odeint_range( System system , Stepper stepper , State x , Time t_start , Time dt , Time t_end )
+auto make_ode_range( System system , Stepper stepper , State x , Time t_start , Time dt , Time t_end )
 {
     auto updater = [system,stepper,dt]( auto x ) mutable { 
             stepper.do_step( system , x.first , x.second , dt );
@@ -37,6 +37,49 @@ auto make_odeint_range( System system , Stepper stepper , State x , Time t_start
     return range;
 }
 
+template< typename System , typename Stepper , typename State , typename Time , typename Cond >
+auto make_ode_range2( System system , Stepper stepper , State x , Time t_start , Time dt , Cond cond )
+{
+    State x2;
+    stepper.do_step( system , x , t_start , x2 , dt );
+    auto state = std::make_tuple( true , x2 , x , t_start );
+    auto updater = [system,stepper,dt]( auto x ) mutable { 
+        if( std::get< 0 >( x ) )
+        {
+            stepper.do_step( system , std::get< 1 >( x ) , std::get< 3 >( x ) , std::get< 2 >( x ) , dt );
+            std::get< 0 >( x ) = false;
+        }
+        else
+        {
+            stepper.do_step( system , std::get< 2 >( x ) , std::get< 3 >( x ) , std::get< 1 >( x ) , dt );
+            std::get< 0 >( x ) = true;
+        }
+        std::get< 3 >( x ) += dt;
+        return x; };
+    auto range = make_map_range( state , updater , cond );
+    return range;
+}
+
+
+
+void odeint0( void )
+{
+    namespace odeint = boost::numeric::odeint;
+
+    using state_type = std::array< double , 3 >;
+    using stepper_type = odeint::runge_kutta4< state_type >;
+
+    state_type x {{ 10.0 , 10.0 , 10.0 }};
+    stepper_type stepper;
+    double t = 0.0;
+    double dt = 0.01;
+    stepper.do_step( lorenz , x , t , dt );
+    t += dt;
+
+    auto obs = []( auto x , auto t ) { std::cout << t << " " << x[0] << "\n"; };
+    odeint::integrate_const( stepper , lorenz , x , 0.0 , 10.0 , dt , obs );
+}
+
 
 void odeint1( void )
 {
@@ -45,19 +88,40 @@ void odeint1( void )
 
     state_type x {{ 10.0 , 10.0 , 10.0 }};
     stepper_type stepper;
-    auto r = make_odeint_range( lorenz , stepper , x , 0.0 , 0.1 , 100.0 );
+    auto range = make_ode_range( lorenz , stepper , x , 0.0 , 0.1 , 100.0 );
 
-    for( auto iter = r.begin() ; iter != r.end() ; ++iter )
+    for( auto r : range )
+        std::cout << r.second << " " << r.first[0] << "\n";
+}
+
+void odeint2( void )
+{
+    using state_type = std::array< double , 1 >;
+    using stepper_type = boost::numeric::odeint::runge_kutta4< state_type >;
+
+    auto sys = []( auto const& x , auto& dxdt , auto t ) { dxdt[0] = -0.1 * x[0]; };
+    state_type x {{ 10.0 }};
+    stepper_type stepper;
+    auto cond = []( auto x ) {
+        double val2 = std::abs( std::get< 2 >( x )[0] - std::get< 1 >( x )[0] );
+        return val2 < 1.0e-6;
+    };
+
+    auto range = make_ode_range2( sys , stepper , x , 0.0 , 0.1 , cond );
+
+    for( auto r : range )
     {
-        auto x = *iter;
-        std::cout << x.second << " " << x.first[0] << " " << x.first[1] << " " << x.first[2] << std::endl;
+        std::cout << std::get< 3 >( r ) << " " << std::get< 1 >( r )[0] << "\n";
     }
 }
+
 
 using namespace std;
 
 int main( int argc , char *argv[] )
 {
-    odeint1();
+    // odeint0();
+    // odeint1();
+    odeint2();
     return 0;
 }

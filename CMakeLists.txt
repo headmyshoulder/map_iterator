@@ -31,3 +31,4 @@ include_directories ( ${Boost_INCLUDE_DIRS} )
 
 add_executable ( main main.cpp )
 add_executable ( odeint_adaption odeint_adaption.cpp )
+add_executable ( game_of_life game_of_life.cpp )
